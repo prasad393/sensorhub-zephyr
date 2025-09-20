@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+      - name: Bootstrap Zephyr
+        run: |
+          pip install --user west
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          west init -m https://github.com/zephyrproject-rtos/zephyr zephyrproject
+          cd zephyrproject
+          west update
+          west zephyr-export
+          pip install -r zephyr/scripts/requirements.txt
+
+      - name: Build app (native_sim)
+        run: |
+          source zephyrproject/zephyr/zephyr-env.sh
+          west build -b native_sim -s .
+
+      - name: Run tests with Twister
+        run: |
+          source zephyrproject/zephyr/zephyr-env.sh
+          west twister -T tests -v -b native_sim
+
+      - name: Cppcheck (informational)
+        run: |
+          sudo apt-get update && sudo apt-get install -y cppcheck
+          cppcheck --enable=warning,style,performance --quiet --error-exitcode=0 app drivers include subsys || true
