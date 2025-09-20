@@ -105,4 +105,3 @@ sensorhub-zephyr/
 
 ---
 
-**Author**: You (Prasad Sonani) — feel free to add a “What I learned” section and a GIF screenshot of the shell to the README after you run it locally.
