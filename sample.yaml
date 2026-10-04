@@ -1,0 +1,29 @@
+sample:
+  name: SensorHub
+  description: Simulated multi-sensor hub on native_sim
+
+common:
+  tags: sensorhub
+  platform_allow:
+    - native_sim
+    - native_sim/native/64
+  integration_platforms:
+    - native_sim
+  harness: console
+
+# Boot the app and check that samples flow through the pipeline
+tests:
+  sensorhub.app:
+    harness_config:
+      type: multi_line
+      ordered: true
+      regex:
+        - "sensor rate: 100 Hz"
+        - "rate=100Hz rx=1\\d\\d q=\\d+/16 hwm=\\d+ drops=0"
+  sensorhub.app.mqtt:
+    extra_configs:
+      - CONFIG_SENSORHUB_MQTT=y
+    harness_config:
+      type: one_line
+      regex:
+        - "\\[mqtt stub\\] would publish \\d+ msgs to sensorhub/telemetry"
