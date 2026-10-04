@@ -4,7 +4,7 @@
 #   docker/run.sh scripts/twister.sh    build and run all tests
 set -euo pipefail
 cd "$(dirname "$0")/.."
-docker run --rm -it \
+docker run --rm -it --platform linux/amd64 \
     --user "$(id -u):$(id -g)" -e HOME=/tmp -e BUILD_DIR=build-docker \
     -v "$PWD":/workspace sensorhub-zephyr \
     "${@:-scripts/run.sh}"
