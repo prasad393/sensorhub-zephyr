@@ -23,7 +23,7 @@ static void idle_estimator(void *a, void *b, void *c)
         int idle_ms = window_ms - busy_ms;
         if (idle_ms < 0) idle_ms = 0;
         int pct = (idle_ms * 100) / window_ms;
-        atomic_set(&g_ctrl.idle_pct, pct);
+        sensorhub_set_idle_pct(pct);
         k_msleep(MAX(0, window_ms - elapsed));
     }
 }
@@ -31,12 +31,12 @@ static void idle_estimator(void *a, void *b, void *c)
 K_THREAD_STACK_DEFINE(idle_stack, 1024);
 static struct k_thread idle_tid;
 
-SYS_INIT(init_power, APPLICATION, 90);
-int init_power(const struct device *dev)
+static int init_power(void)
 {
-    ARG_UNUSED(dev);
     k_thread_create(&idle_tid, idle_stack, K_THREAD_STACK_SIZEOF(idle_stack),
                     idle_estimator, NULL, NULL, NULL, 7, 0, K_NO_WAIT);
     k_thread_name_set(&idle_tid, "idle_est");
     return 0;
 }
+
+SYS_INIT(init_power, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

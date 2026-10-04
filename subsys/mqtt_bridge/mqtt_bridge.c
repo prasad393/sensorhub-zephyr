@@ -4,19 +4,24 @@
 
 LOG_MODULE_REGISTER(sensorhub_mqtt, LOG_LEVEL_INF);
 
-/* Stubbed: For demo, we just print what would be published.
- * In real use, enable an MQTT client and publish JSON to sensorhub/telemetry.
- * Controlled by Kconfig/CONFIG_SENSORHUB_MQTT.
+/* Stubbed: there is no broker connection yet. Instead of publishing each sample
+ * to sensorhub/telemetry, log a once-per-second summary of what would have been
+ * published, which keeps the console readable at high sample rates.
+ * Built only with CONFIG_SENSORHUB_MQTT=y; called from the logger thread only.
  */
-static void maybe_publish(const struct sample_msg *s)
+void mqtt_bridge_forward(const struct sample_msg *s)
 {
-#if defined(CONFIG_SENSORHUB_MQTT) && CONFIG_SENSORHUB_MQTT
-    LOG_INF("[mqtt] publish sensorhub/telemetry "
-            "{\"seq\":%u,\"t\":%.2f}", s->seq, s->temp.celsius);
-#else
-    ARG_UNUSED(s);
-#endif
-}
+    static uint32_t pending;
+    static int64_t last_log_ms;
 
-void mqtt_bridge_forward(const struct sample_msg *s);
-void mqtt_bridge_forward(const struct sample_msg *s) { maybe_publish(s); }
+    pending++;
+    if (k_uptime_get() - last_log_ms < 1000) {
+        return;
+    }
+
+    LOG_INF("[mqtt stub] would publish %u msgs to sensorhub/telemetry, "
+            "latest {\"seq\":%u,\"t\":%.2f}",
+            pending, s->seq, (double)s->temp.celsius);
+    pending = 0;
+    last_log_ms = k_uptime_get();
+}

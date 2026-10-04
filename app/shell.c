@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
 #include <zephyr/logging/log.h>
@@ -19,13 +21,13 @@ static int cmd_sensor_read(const struct shell *sh, size_t argc, char **argv)
     if (strcmp(argv[2], "temp") == 0) {
         struct temp_sample t;
         vs_temp_read(&t);
-        shell_print(sh, "temp: %.2f C (avg=%.2f drift=%.3f noise=%.3f)", t.celsius, t.avg, t.drift, t.noise);
+        shell_print(sh, "temp: %.2f C (avg=%.2f drift=%.3f noise=%.3f)", (double)t.celsius, (double)t.avg, (double)t.drift, (double)t.noise);
         return 0;
     } else if (strcmp(argv[2], "imu") == 0) {
         struct imu_sample s;
         vs_imu_read(&s);
         shell_print(sh, "imu: ax=%.2f ay=%.2f az=%.2f  gx=%.2f gy=%.2f gz=%.2f",
-                    s.ax, s.ay, s.az, s.gx, s.gy, s.gz);
+                    (double)s.ax, (double)s.ay, (double)s.az, (double)s.gx, (double)s.gy, (double)s.gz);
         return 0;
     }
     shell_print(sh, "unknown sensor: %s", argv[2]);
@@ -64,7 +66,7 @@ static int cmd_stats(const struct shell *sh, size_t argc, char **argv)
     sensorhub_get_qstats(&st);
     shell_print(sh, "q=%u/%u hwm=%u drops=%u idle=%d%% rate=%dHz",
                 st.depth, st.capacity, st.high_watermark, st.drops,
-                atomic_get(&g_ctrl.idle_pct), sensorhub_get_rate());
+                sensorhub_get_idle_pct(), sensorhub_get_rate());
     return 0;
 }
 

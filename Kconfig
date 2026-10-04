@@ -1,0 +1,11 @@
+# SensorHub application options
+
+config SENSORHUB_MQTT
+	bool "MQTT telemetry bridge (stub)"
+	help
+	  Forward every sample the logger thread receives to the MQTT bridge in
+	  subsys/mqtt_bridge/. The bridge is a stub: it does not connect to a
+	  broker yet, it logs a once-per-second summary of the JSON payloads it
+	  would publish to sensorhub/telemetry.
+
+source "Kconfig.zephyr"

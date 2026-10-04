@@ -6,9 +6,13 @@ target_include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_sources(app PRIVATE
   app/main.c
+  app/sensorhub.c
   app/shell.c
   app/power.c
   drivers/vs_temp.c
   drivers/vs_imu.c
+)
+
+target_sources_ifdef(CONFIG_SENSORHUB_MQTT app PRIVATE
   subsys/mqtt_bridge/mqtt_bridge.c
 )
