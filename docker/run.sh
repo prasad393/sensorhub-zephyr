@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-set -e
-docker run --rm -it -v "$(pwd)":/workspace sensorhub-zephyr bash -lc '\
-  source /home/builder/zephyrproject/zephyr/zephyr-env.sh && \
-  cd /workspace && west build -b native_sim -s . && west run \
-'
+# Run a command in the development container, with the repo at /workspace.
+#   docker/run.sh                       build and run the app (Ctrl-C quits)
+#   docker/run.sh scripts/twister.sh    build and run all tests
+set -euo pipefail
+cd "$(dirname "$0")/.."
+docker run --rm -it \
+    --user "$(id -u):$(id -g)" -e HOME=/tmp -e BUILD_DIR=build-docker \
+    -v "$PWD":/workspace sensorhub-zephyr \
+    "${@:-scripts/run.sh}"

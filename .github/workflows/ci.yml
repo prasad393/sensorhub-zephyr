@@ -3,39 +3,61 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      # The repo is checked out into a west workspace, next to zephyr/
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: sensorhub-zephyr
 
-      - name: Install deps
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Bootstrap Zephyr
+      - name: Install host tools
         run: |
-          pip install --user west
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          west init -m https://github.com/zephyrproject-rtos/zephyr zephyrproject
-          cd zephyrproject
-          west update
-          west zephyr-export
-          pip install -r zephyr/scripts/requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            device-tree-compiler gcc-multilib g++-multilib ninja-build
 
-      - name: Build app (native_sim)
+      # Same steps as "Set up a workspace" in the README
+      - name: Set up the west workspace
         run: |
-          source zephyrproject/zephyr/zephyr-env.sh
-          west build -b native_sim -s .
+          python -m venv .venv
+          source .venv/bin/activate
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          pip install west
+          west init -l sensorhub-zephyr
+          west update --narrow -o=--depth=1
+          west packages pip --install
 
-      - name: Run tests with Twister
-        run: |
-          source zephyrproject/zephyr/zephyr-env.sh
-          west twister -T tests -v -b native_sim
+      # Builds the app and every test with warnings as errors, runs the unit
+      # tests, and boots the app to check its telemetry output
+      - name: Build and test with Twister
+        working-directory: sensorhub-zephyr
+        env:
+          ZEPHYR_TOOLCHAIN_VARIANT: host
+        run: west twister -T . -p native_sim -p native_sim/native/64 -v --inline-logs
 
-      - name: Cppcheck (informational)
-        run: |
-          sudo apt-get update && sudo apt-get install -y cppcheck
-          cppcheck --enable=warning,style,performance --quiet --error-exitcode=0 app drivers include subsys || true
+      - name: Upload Twister reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twister-reports
+          path: |
+            sensorhub-zephyr/twister-out/twister.json
+            sensorhub-zephyr/twister-out/twister.xml
+          if-no-files-found: ignore
